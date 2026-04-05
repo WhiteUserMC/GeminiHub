@@ -1,86 +1,106 @@
 local lplr = game.Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 _G.GeminiActive = true
 local Gemini = {
-    Theme = {
-        Main = Color3.fromRGB(15, 15, 18),
-        Accent = Color3.fromRGB(65, 130, 255),
-        Card = Color3.fromRGB(25, 25, 30),
-        Text = Color3.fromRGB(255, 255, 255)
-    },
     Modules = {
-        Combat = { List = {
-            {Name = "Killaura", Desc = "Automatically attack players within range.", Enabled = false, Range = 15, CPS = 12},
-            {Name = "Aim Assist", Desc = "Gently snaps your aim to targets.", Enabled = false, Smooth = 0.5},
-            {Name = "Hitbox", Desc = "Expand enemy hitboxes for easier hits.", Enabled = false, Size = 10},
-            {Name = "Reach", Desc = "Increase your melee attack distance.", Enabled = false, Distance = 6}
-        }},
-        Movement = { List = {
-            {Name = "Fly", Desc = "Allows you to fly and move in the air.", Enabled = false, Value = 50},
-            {Name = "Speed", Desc = "Boosts your movement speed significantly.", Enabled = false, Value = 35},
-            {Name = "Fakelag", Desc = "Desyncs your position to confuse enemies.", Enabled = false, Limit = 15}
-        }},
-        Visuals = { List = {
-            {Name = "ESP Box", Desc = "Draw 2D boxes around players.", Enabled = false},
-            {Name = "Tracers", Desc = "Draw lines connecting you to targets.", Enabled = false},
-            {Name = "NameTags", Desc = "Show player names above heads.", Enabled = false}
-        }}
+        Combat = {
+            List = {
+                {Name = "Killaura", Desc = "Attack players automatically.", Enabled = false, Range = 18, CPS = 14},
+                {Name = "AimAssist", Desc = "Smoothly guide aim to targets.", Enabled = false, Smoothness = 0.6},
+                {Name = "Velocity", Desc = "Modify your take-back knockback.", Enabled = false, Horizontal = 0, Vertical = 0},
+                {Name = "Reach", Desc = "Expand your hit distance.", Enabled = false, Distance = 4}
+            }
+        },
+        Movement = {
+            List = {
+                {Name = "Speed", Desc = "High-speed movement bypass.", Enabled = false, Value = 25},
+                {Name = "Fly", Desc = "Defy gravity and soar.", Enabled = false, Value = 50},
+                {Name = "LongJump", Desc = "Jump further than normal.", Enabled = false, Boost = 2}
+            }
+        },
+        Visuals = {
+            List = {
+                {Name = "ESP", Desc = "Outline players through walls.", Enabled = false},
+                {Name = "Tracers", Desc = "Snaplines to every player.", Enabled = false},
+                {Name = "Fakelag", Desc = "Ghost-like movement effect.", Enabled = false, Limit = 15}
+            }
+        }
     }
 }
 _G.GeminiModules = Gemini.Modules
 
--- [[ UI SYSTEM ]]
+-- [[ RAVEN B4 UI ENGINE ]]
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Main = Instance.new("Frame", ScreenGui); Main.Size = UDim2.new(0, 500, 0, 380); Main.Position = UDim2.new(0.5, -250, 0.5, -190); Main.BackgroundColor3 = Gemini.Theme.Main; Main.Visible = true; Main.ClipsDescendants = true; Instance.new("UICorner", Main)
+local function CreateCategory(name, pos)
+    local Frame = Instance.new("Frame", ScreenGui)
+    Frame.Size = UDim2.new(0, 150, 0, 30)
+    Frame.Position = pos
+    Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Frame.BorderSizePixel = 0
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 4)
 
-local Sidebar = Instance.new("Frame", Main); Sidebar.Size = UDim2.new(0, 140, 1, 0); Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Instance.new("UICorner", Sidebar)
-local TabContainer = Instance.new("Frame", Sidebar); TabContainer.Size = UDim2.new(1, 0, 1, -50); TabContainer.Position = UDim2.new(0, 0, 0, 50); TabContainer.BackgroundTransparency = 1; local TabLayout = Instance.new("UIListLayout", TabContainer); TabLayout.Padding = UDim.new(0, 5); TabLayout.HorizontalAlignment = "Center"
-local ContentFrame = Instance.new("ScrollingFrame", Main); ContentFrame.Size = UDim2.new(1, -160, 1, -20); ContentFrame.Position = UDim2.new(0, 150, 0, 10); ContentFrame.BackgroundTransparency = 1; ContentFrame.ScrollBarThickness = 0; Instance.new("UIListLayout", ContentFrame).Padding = UDim.new(0, 8)
+    local Title = Instance.new("TextLabel", Frame)
+    Title.Text = name; Title.Size = UDim2.new(1, 0, 1, 0); Title.TextColor3 = Color3.new(1,1,1); Title.Font = "GothamBold"; Title.BackgroundTransparency = 1
 
--- [[ FUNCTIONS ]]
-local function CreateModuleCard(mod)
-    local Card = Instance.new("Frame", ContentFrame); Card.Size = UDim2.new(1, -10, 0, 60); Card.BackgroundColor3 = Gemini.Theme.Card; Instance.new("UICorner", Card); Card.ClipsDescendants = true
-    local Name = Instance.new("TextLabel", Card); Name.Text = mod.Name; Name.Size = UDim2.new(1, 0, 0, 25); Name.Position = UDim2.new(0, 12, 0, 10); Name.TextColor3 = mod.Enabled and Gemini.Theme.Accent or Gemini.Theme.Text; Name.Font = "GothamBold"; Name.TextSize = 14; Name.TextXAlignment = "Left"; Name.BackgroundTransparency = 1
-    local Desc = Instance.new("TextLabel", Card); Desc.Text = mod.Desc; Desc.Size = UDim2.new(1, -20, 0, 15); Desc.Position = UDim2.new(0, 12, 0, 28); Desc.TextColor3 = Color3.fromRGB(180, 180, 180); Desc.Font = "Gotham"; Desc.TextSize = 10; Desc.TextXAlignment = "Left"; Desc.BackgroundTransparency = 1; Desc.TextTransparency = 0.4
-    
-    local Click = Instance.new("TextButton", Card); Click.Size = UDim2.new(1, 0, 1, 0); Click.BackgroundTransparency = 1; Click.Text = ""
-    
-    Click.MouseButton1Click:Connect(function()
+    local Container = Instance.new("Frame", Frame)
+    Container.Size = UDim2.new(1, 0, 0, 0); Container.Position = UDim2.new(0, 0, 1, 2); Container.BackgroundTransparency = 1
+    local Layout = Instance.new("UIListLayout", Container); Layout.Padding = UDim.new(0, 2)
+
+    -- Logic kéo thả (Raven Style)
+    local Dragging, DragInput, DragStart, StartPos
+    Frame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true; DragStart = i.Position; StartPos = Frame.Position end end)
+    Frame.InputChanged:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseMovement then DragInput = i end end)
+    UIS.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end end)
+    RunService.RenderStepped:Connect(function()
+        if Dragging and DragInput then
+            local Delta = DragInput.Position - DragStart
+            Frame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+        end
+    end)
+
+    return Container
+end
+
+-- Hàm tạo Module Button chuẩn Raven
+local function AddModule(container, mod)
+    local btn = Instance.new("TextButton", container)
+    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Text = mod.Name; btn.TextColor3 = Color3.new(0.8, 0.8, 0.8); btn.Font = "Gotham"; btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn)
+
+    btn.MouseButton1Click:Connect(function()
         mod.Enabled = not mod.Enabled
-        Name.TextColor3 = mod.Enabled and Gemini.Theme.Accent or Gemini.Theme.Text
-        TweenService:Create(Card, TweenInfo.new(0.3), {BackgroundColor3 = mod.Enabled and Color3.fromRGB(30, 35, 45) or Gemini.Theme.Card}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.3), {
+            BackgroundColor3 = mod.Enabled and Color3.fromRGB(65, 130, 255) or Color3.fromRGB(30, 30, 30),
+            TextColor3 = mod.Enabled and Color3.new(1,1,1) or Color3.new(0.8, 0.8, 0.8)
+        }):Play()
     end)
+    
+    container.Size = UDim2.new(1, 0, 0, #container:GetChildren() * 32)
+end
 
-    -- Chuột phải để bung bảng chỉnh (Animation)
-    local Open = false
-    Click.MouseButton2Click:Connect(function()
-        Open = not Open
-        TweenService:Create(Card, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = Open and UDim2.new(1, -10, 0, 160) or UDim2.new(1, -10, 0, 60)}):Play()
+-- Khởi tạo các cột (Category)
+local CombatCat = CreateCategory("COMBAT", UDim2.new(0, 50, 0, 50))
+local MoveCat = CreateCategory("MOVEMENT", UDim2.new(0, 210, 0, 50))
+local VisualCat = CreateCategory("VISUALS", UDim2.new(0, 370, 0, 50))
+
+for _, m in pairs(Gemini.Modules.Combat.List) do AddModule(CombatCat, m) end
+for _, m in pairs(Gemini.Modules.Movement.List) do AddModule(MoveCat, m) end
+for _, m in pairs(Gemini.Modules.Visuals.List) do AddModule(VisualCat, m) end
+
+-- [[ SAFE LOADER ]]
+local function SafeLoad(file)
+    task.spawn(function()
+        local success, content = pcall(game.HttpGet, game, "https://raw.githubusercontent.com/WhiteUserMC/GeminiHub/main/Modules/"..file)
+        if success and content then
+            local f, e = loadstring(content)
+            if f then pcall(f) else warn(e) end
+        end
     end)
 end
 
-local function SwitchTab(cat)
-    for _, v in pairs(ContentFrame:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    if Gemini.Modules[cat] then
-        for _, mod in pairs(Gemini.Modules[cat].List) do CreateModuleCard(mod) end
-    end
-end
-
-for catName, _ in pairs(Gemini.Modules) do
-    local b = Instance.new("TextButton", TabContainer); b.Size = UDim2.new(0.9, 0, 0, 35); b.Text = catName; b.TextColor3 = Color3.new(1,1,1); b.Font = "GothamBold"; b.BackgroundColor3 = Color3.fromRGB(30, 30, 35); Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() SwitchTab(catName) end)
-end
-
-SwitchTab("Combat")
-
--- [[ LOADER ]]
-local BaseURL = "https://raw.githubusercontent.com/WhiteUserMC/GeminiHub/main/Modules/"
-task.spawn(function()
-    pcall(function() loadstring(game:HttpGet(BaseURL.."Combat.lua"))() end)
-    pcall(function() loadstring(game:HttpGet(BaseURL.."Movement.lua"))() end)
-    pcall(function() loadstring(game:HttpGet(BaseURL.."Visuals.lua"))() end)
-end)
-
-UIS.InputBegan:Connect(function(i) if i.KeyCode == Enum.KeyCode.RightShift then Main.Visible = not Main.Visible end end)
+SafeLoad("Combat.lua"); SafeLoad("Movement.lua"); SafeLoad("Visuals.lua")
